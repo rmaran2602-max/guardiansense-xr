@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GuardianSense XR - Autonomous Safety & Forensics</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+:root{--bg:#070b14;--pn:rgba(15,23,42,.94);--tx:#f8fafc;--sub:#94a3b8;--bd:rgba(6,182,212,.3);--cy:#06b6d4;--rd:#ef4444;--am:#f59e0b;--gn:#10b981}
+body.light{--bg:#f1f5f9;--pn:rgba(255,255,255,.96);--tx:#0f172a;--sub:#475569;--bd:rgba(148,163,184,.5)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font:12px -apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--tx);height:100vh;overflow:hidden;display:flex;flex-direction:column}
+header{height:50px;background:var(--pn);border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;padding:0 14px;gap:8px}
+.btn{background:rgba(6,182,212,.12);border:1px solid var(--cy);color:var(--tx);padding:6px 10px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:600}
+.btn:hover:not(:disabled){background:var(--cy);color:#000}.btn:disabled{opacity:.4;cursor:not-allowed}
+.red{border-color:var(--rd);color:var(--rd);background:rgba(239,68,68,.1)}.red:hover:not(:disabled){background:var(--rd)!important;color:#fff!important}
+.amb{border-color:var(--am);color:var(--am);background:rgba(245,158,11,.1)}.amb:hover:not(:disabled){background:var(--am)!important;color:#000!important}
+.row{display:flex;gap:6px;flex-wrap:wrap}.row .btn{flex:1}
+#ws{flex:1;min-height:0;display:grid;grid-template-columns:370px 1fr 400px;gap:10px;padding:10px}
+.pn{background:var(--pn);border:1px solid var(--bd);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:8px;overflow-y:auto;min-height:0}
+h4{font-size:11px;color:var(--cy)}
+.vb{position:relative;height:210px;background:#000;border-radius:6px;overflow:hidden;flex:none}
+.vb video,.vb canvas{position:absolute;inset:0;width:100%;height:100%}.vb video{object-fit:contain}
+#ov{pointer-events:none}
+#ban{display:none;position:absolute;top:0;left:0;right:0;background:rgba(239,68,68,.88);color:#fff;font-weight:800;text-align:center;padding:5px;font-size:12px;animation:bl .5s infinite alternate;pointer-events:none}
+@keyframes bl{to{background:rgba(127,29,29,.88)}}
+.sg{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.sc{display:flex;align-items:center;gap:4px;border:1px solid var(--bd);border-radius:6px;padding:4px;background:rgba(255,255,255,.03)}
+.sc button{flex:1;text-align:left;background:none;border:0;color:var(--tx);cursor:pointer;font-size:10px;padding:3px}.sc button:hover:not(:disabled){color:var(--cy)}.sc button:disabled{opacity:.35;cursor:not-allowed}
+#cv{position:relative;border:1px solid var(--bd);border-radius:10px;overflow:hidden;background:#000;min-height:0}
+#c3{position:absolute;inset:0}#c3 canvas{display:block;width:100%;height:100%;touch-action:none}
+#hint{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.75);border:1px solid var(--cy);padding:5px 12px;border-radius:20px;font-size:11px;pointer-events:none;color:#fff;white-space:nowrap}
+#vr{position:absolute;top:8px;right:8px;z-index:3}
+.mug{display:flex;gap:8px}.mug div{flex:1;border:1px solid var(--bd);border-radius:6px;padding:5px;text-align:center;font-size:10px;font-weight:700}
+.mug canvas{width:100%;aspect-ratio:1;background:#000;border-radius:4px;margin-top:3px}
+details{border:1px solid var(--bd);border-radius:6px;padding:5px}summary{font-size:10px;font-weight:700;cursor:pointer}
+.fm{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:5px}
+.fm label{display:flex;flex-direction:column;font-size:9px;color:var(--sub)}
+.fm input,.fm select{font-size:10px;padding:3px;background:rgba(0,0,0,.25);color:var(--tx);border:1px solid var(--bd);border-radius:4px}
+#dos{flex:1;min-height:120px;background:rgba(0,0,0,.3);border:1px solid var(--bd);border-radius:6px;padding:8px;font:10px/1.4 monospace;white-space:pre-wrap;overflow-y:auto;color:#cbd5e1}
+footer{height:34px;background:var(--pn);border-top:1px solid var(--bd);display:flex;align-items:center;justify-content:center;font-weight:bold;color:var(--gn)}
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:100;align-items:center;justify-content:center}
+.mc{background:var(--pn);border:1px solid var(--cy);border-radius:10px;width:1020px;max-width:96vw;max-height:94vh;overflow:auto;padding:14px;display:flex;flex-direction:column;gap:10px}
+.fg{display:grid;grid-template-columns:1.4fr 1fr;gap:12px}.fg canvas{width:100%;border-radius:8px;border:1px solid var(--bd)}
+.tab.on{background:var(--cy);color:#000}
+#fdet{font:11px/1.5 monospace;background:rgba(0,0,0,.3);padding:8px;border-radius:6px;white-space:pre-wrap;color:#38bdf8}
+#toast{position:fixed;bottom:50px;left:50%;transform:translateX(-50%);background:#000;border:1px solid var(--cy);color:#fff;padding:8px 16px;border-radius:20px;z-index:200;display:none}
+body.hc{--bg:#000;--pn:#000;--tx:#fff;--sub:#fff;--bd:#fff}body.hc .btn{border-width:2px}
+.nb{display:flex;gap:3px;margin-top:3px}.nb button{flex:1;font-size:10px;padding:2px;background:rgba(6,182,212,.12);border:1px solid var(--cy);color:var(--tx);border-radius:4px;cursor:pointer}
+.fl{animation:fr .6s infinite alternate}@keyframes fr{to{background:#7f1d1d;color:#fff}}
+</style></head><body>
+<header>
+ <strong>🛡️ GUARDIANSENSE XR • TACTICAL AI SYSTEM</strong>
+ <div class="row" style="flex:none">
+  <button class="btn amb" onclick="openFleet()">🚕🚛✈️ Fleet Hub</button>
+  <button class="btn" onclick="document.body.classList.toggle('light')">☀️/🌙</button>
+  <button class="btn" onclick="document.body.classList.toggle('hc')">♿ Contrast</button>
+  <button class="btn" onclick="voiceT()">🔊 Voice</button>
+  <button class="btn" id="pm" onclick="permitMode()">🔐 Staged Filming Mode</button>
+  <button class="btn amb" id="hb" onclick="handsMode()">🖐 Hands-first</button>
+  <button class="btn" id="bz" onclick="toggleBuzz()">🔔 Buzzer ON</button><button class="btn" onclick="buzz(2,true)">🔈 Test buzzer</button>
+  <button class="btn red" onclick="snap()">📸 Screenshot</button>
+  <button class="btn amb" onclick="autoDemo()">▶ Auto-Demo (30s Meta Showcase)</button>
+ </div>
+</header>
+<div id="pwr" style="display:flex;gap:10px;align-items:center;padding:4px 14px;font-size:11px;background:var(--pn);border-bottom:1px solid var(--bd)"><span id="pwt" style="color:var(--gn);font-weight:700">☀️ Solar + 🔋 Dual-Battery + ⚡ Backup Power: ONLINE (Failover Ready)</span><button class="btn" id="pwb" onclick="powerToggle()">⚡ Simulate Main Power Cut</button><select id="var" onchange="variantChg()" style="font-size:10px;padding:4px;background:rgba(0,0,0,.3);color:var(--tx);border:1px solid var(--bd);border-radius:4px"><option>Variant 1: #GS-01 Solar + Dual-Battery (Outdoor)</option><option>Variant 2: #GS-02 Wired + Battery Failover (Malls/Schools/Transit)</option><option>Variant 3: #GS-03 Portable Vehicle Cabin Unit (Taxi &amp; Lorry ECU)</option><option>Variant 4: #GS-04 Aviation 3-Zone Fuselage Unit</option><option>Variant 5: #GS-05 All-in-One FireShield (Vision + Smoke + Fire Tetrahedron + HEPA/Carbon)</option></select><button class="btn" onclick="paBroadcast()">📢 Authority PA Broadcast</button><button class="btn amb" id="fdm" onclick="drillMode()">🎆 Fireworks / Fire Drill Mode</button><button class="btn red" onclick="trigFire()">🔥 Smoke &amp; Fire Test</button></div>
+<div id="ws">
+ <div class="pn">
+  <h4>1. PRIMARY FEED MONITOR</h4>
+  <div class="vb"><video id="vid" controls loop muted playsinline></video><canvas id="ov"></canvas><div id="ban"></div></div>
+  <div class="row">
+   <input type="file" id="vf" accept="video/*,.mp4,.webm,.mov,.m4v,.mkv" style="position:absolute;width:1px;height:1px;opacity:0" onchange="loadVid(event)">
+   <label class="btn" for="vf" style="text-align:center">📁 Load Video</label>
+   <button class="btn" onclick="webcam()">📷 Webcam</button>
+  </div>
+  <div class="row"><select id="scene" onchange="runScene(this.value)" style="flex:1;font-size:11px;padding:5px;background:rgba(0,0,0,.3);color:var(--tx);border:1px solid var(--cy);border-radius:6px"><option value="">🎬 Select Studio Clip Preset</option><option value="wall_pin">rec1.MOV — Wall-Pinning &amp; Confinement</option><option value="hair_grab">rec2.MOV &amp; rec3.MOV — Rear Hair-Grab Assault</option><option value="lifting">rec4.MOV — Body Lifting / Grappling Assault</option><option value="harassment_hug">rec5.MOV — Rear Harassment Hug (Non-Consensual — Alarm ON)</option><option value="choke">rec6.MOV — Throat Choke (Female Initiator / Role Reversal)</option><option value="pickpocket">rec7.MOV — Pickpocket / Pocket Reach</option><option value="kidnapping">rec8.MOV — Kidnapping (Cloth Blocking Victim Face)</option><option value="friendly_hug">rec9.MOV — Couple / Friendly Hug (Consensual — 0dB No Alarm)</option></select></div>
+<div class="row"><select id="loc" onchange="locChg()" style="flex:1;font-size:11px;padding:5px;background:rgba(0,0,0,.3);color:var(--tx);border:1px solid var(--bd);border-radius:6px"><option>Public Street</option><option>MRT/LRT Train</option><option>Public Bus</option><option>Shopping Mall</option><option>School Corridor</option></select></div>
+  <div id="tb" style="display:none;flex-direction:column;gap:5px;border:1px solid var(--rd);border-radius:6px;padding:6px"><span style="font-size:9px;color:var(--sub)">Transit Line / Bus No.</span><select id="tl" style="font-size:10px;padding:4px;background:rgba(0,0,0,.3);color:var(--tx);border:1px solid var(--bd);border-radius:4px"><option>Metro Line A (Coach #3 Women's Coach)</option><option>Light Rail Line B</option><option>Metro Express Bus #U80</option><option>City Shuttle Bus #04</option></select><span style="font-size:9px;color:var(--sub)">Destination</span><select id="td" style="font-size:10px;padding:4px;background:rgba(0,0,0,.3);color:var(--tx);border:1px solid var(--bd);border-radius:4px"><option>KL Sentral</option><option>Bukit Bintang</option><option>Pasar Seni</option><option>Putrajaya Sentral</option></select><span style="font-size:9px;color:var(--sub)">Attacker Exit Stop</span><select id="ts" style="font-size:10px;padding:4px;background:rgba(0,0,0,.3);color:var(--tx);border:1px solid var(--bd);border-radius:4px"><option>Pasar Seni (Gate A2)</option><option>Masjid Jamek</option><option>KLCC East Exit</option><option>Mid Valley Stop</option></select><button class="btn red" onclick="trackExit()">🏃 Track Exit Turnstile / Stop</button></div>
+  <h4>2. 🤖 AI AUTO-DETECT: people, faces, attacker/victim, attack type</h4>
+  <div class="row"><button class="btn red" id="aib" onclick="aiToggle()">🤖 START AI AUTO-DETECT</button><button class="btn" onclick="swapRoles()">⇄ Swap roles</button><button class="btn" onclick="unlockRoles()">🔓 New incident</button></div>
+  <div class="row" style="align-items:center;font-size:10px;color:var(--sub)">AI sensitivity <input type="range" id="sens" min="1" max="10" value="5" style="flex:1"></div>
+  <div id="ai" style="font-size:10px;color:var(--sub)">AI is off. Load a video and the AI starts by itself.</div>
+  <h4>🚨 ATTACKS DETECTED (live list)</h4><div id="atk" style="font-size:10px;line-height:1.5;color:#fca5a5">none yet</div>
+  <h4>Manual backup: pause, then drag a box around a head</h4>
+  <div class="row">
+   <button class="btn red" onclick="startMark('a')">🎯 Mark ATTACKER face</button>
+   <button class="btn" onclick="startMark('v')">🎯 Mark VICTIM face</button>
+  </div>
+  <h4>3. ATTACK DETECTORS — tick only what is in your footage</h4>
+  <div class="sg" id="sg"></div>
+  <h4>4. EVIDENCE CLIP</h4>
+  <div class="row">
+   <button class="btn red" id="rb" onclick="recClip(10)">⏺ Record 10s clip</button>
+   <button class="btn" id="db" onclick="saveClip()" disabled>🎬 Download Clip (.MP4)</button>
+  </div>
+ </div>
+
+ <div id="cv"><div id="c3"></div>
+  <button class="btn" id="vr" onclick="resetView()">🔄 Reset 3D view</button>
+  <div id="sb" style="position:absolute;top:8px;left:8px;z-index:3;background:rgba(0,0,0,.7);border:1px solid var(--cy);border-radius:6px;padding:4px 8px;font-size:10px;color:#fff;pointer-events:none">🥽 3D WEBXR SPATIAL ROOM • CLICK & DRAG RED LEVER TO DISPATCH</div>
+ <div id="hint">🖱️ Drag = rotate • Wheel = zoom • Pull the red lever (left) to dispatch</div>
+ </div>
+
+ <div class="pn">
+  <h4>5. SUSPECT & VICTIM PROFILES (colours auto-sampled from your marks — edit anything)</h4>
+  <div class="mug">
+   <div style="border-color:var(--rd);color:var(--rd)">🔴 ATTACKER FACE<canvas id="face_a" width="120" height="120"></canvas><div class="nb"><button onclick="nudge('a',-1,0,1)">◀</button><button onclick="nudge('a',1,0,1)">▶</button><button onclick="nudge('a',0,0,1.25)">➕</button><button onclick="nudge('a',0,0,.8)">➖</button></div></div>
+   <div style="border-color:var(--cy);color:var(--cy)">🔵 VICTIM FACE<canvas id="face_v" width="120" height="120"></canvas><div class="nb"><button onclick="nudge('v',-1,0,1)">◀</button><button onclick="nudge('v',1,0,1)">▶</button><button onclick="nudge('v',0,0,1.25)">➕</button><button onclick="nudge('v',0,0,.8)">➖</button></div></div>
+  </div>
+  <details open><summary style="color:var(--rd)">🔴 Attacker description</summary><div class="fm" id="fa"></div></details>
+  <details open><summary style="color:var(--cy)">🔵 Victim description</summary><div class="fm" id="fv"></div></details>
+  <h4>6. AI EVENT & INCIDENT DOSSIER</h4>
+  <div id="dos">[SYSTEM READY]
+1. Load your video  2. Mark attacker & victim faces  3. Click the attack that happens.</div>
+  <button class="btn red" onclick="dlDossier()">📥 Download Court Incident Dossier (.TXT)</button><button class="btn amb" onclick="deleteLock()">🗑️ Delete Evidence Log (Test Anti-Bribe Lock)</button>
+ </div>
+</div>
+<footer id="foot">💚 SYSTEM MONITORING ACTIVE • READY FOR TEST SCENARIOS</footer>
+<div id="cur" style="display:none;position:fixed;width:26px;height:26px;border-radius:50%;border:3px solid #fff;background:#06b6d4;z-index:300;pointer-events:none;transform:translate(-50%,-50%)"></div>
+<div id="toast"></div>
+
+<div id="fm" class="modal"><div class="mc">
+ <div style="display:flex;justify-content:space-between;align-items:center"><strong>🚕🚛✈️ FLEET, TAXI, LORRY & AVIATION TRACKING HUB</strong><button class="btn red" onclick="$('fm').style.display='none'">✕ Close</button></div>
+ <div class="row"><button class="btn tab on" id="t_taxi" onclick="tab('taxi')">🚕 Taxi</button><button class="btn tab" id="t_lorry" onclick="tab('lorry')">🚛 Lorry Driver</button><button class="btn tab" id="t_plane" onclick="tab('plane')">✈️ Aeroplane</button></div>
+ <div id="zb" class="row" style="display:none"><button class="btn red" onclick="zoneAlert(1)">Zone 1: Cockpit — Cockpit Pilot Security Breach Alert</button><button class="btn amb" onclick="zoneAlert(2)">Zone 2: Galley / Cabin Crew Alert</button><button class="btn red" onclick="zoneAlert(3)">Zone 3: Passenger Cabin Alert</button></div>
+ <div class="fg">
+  <canvas id="fmap" width="560" height="300"></canvas>
+  <div style="display:flex;flex-direction:column;gap:8px">
+   <div id="fdet"></div>
+   <label style="font-size:10px">🚀 Turbo speed <input type="range" id="fsp" min="1" max="10" value="3"></label>
+   <div class="row"><button class="btn red" onclick="sos()">🆘 SOS</button><button class="btn amb" onclick="surprise()">🎲 Surprise event!</button><button class="btn" onclick="ecu()">🤖 ECU override</button></div>
+   <div style="font-size:10px;color:var(--sub)">🎬 Judges: add incident video for this vehicle</div>
+   <input type="file" accept="video/*,.mp4,.webm,.mov,.m4v,.mkv" style="font-size:10px" onchange="fleetVid(event)">
+   <video id="fvid" controls loop muted style="width:100%;max-height:150px;background:#000;border-radius:6px"></video>
+  </div>
+ </div>
+</div></div>
+
+<script>
+const $=id=>document.getElementById(id);
+const V=$('vid'),ov=$('ov'),octx=ov.getContext('2d');
+const MUG={a:null,v:null};
+function setMug(p,src,cx,cy,side){const cp=document.createElement('canvas');cp.width=src.width;cp.height=src.height;cp.getContext('2d').drawImage(src,0,0);MUG[p]={src:cp,cx,cy,side:side*1.25,dx:0,dy:0,z:1};drawMug(p)}
+function drawMug(p){const m=MUG[p];if(!m)return;const c=$('face_'+p).getContext('2d');c.fillStyle='#000';c.fillRect(0,0,120,120);const z=m.side/m.z;c.drawImage(m.src,m.cx+m.dx-z/2,m.cy+m.dy-z/2,z,z,0,0,120,120)}
+function nudge(p,dx,dy,dz){const m=MUG[p];if(!m)return toast('Capture a face first');m.dx+=dx*m.side*.08;m.dy+=dy*m.side*.08;if(dz)m.z=Math.min(3,Math.max(.5,m.z*dz));drawMug(p)}
+function sevenPt(p){const v=k=>val(p,k)||'not set',hair=v('hair'),ht=v('htype');
+ const tops=[val(p,'tcol'),val(p,'top')].filter(Boolean).join(' ')||'not set',bots=[val(p,'bcol'),(/blue|navy/i.test(val(p,'bcol'))&&/Trousers/.test(val(p,'btype'))?'Denim jeans':val(p,'btype'))].filter(Boolean).join(' ')||'not set';
+ const role=p==='a'?'Attacker (as assigned)':(AI.obs&&AI.obs.length?'Lawful Self-Defense (responses: '+AI.obs.join('; ')+')':'Victim (as assigned)');
+ return(STUDIO[p]?'':'')+['1. Face/Mask: '+(MUG[p]?'face captured (still photo)':'not captured')+(v('note')!=='not set'?' • '+v('note'):''),
+ '2. Hair colour & style: '+hair+(ht!=='not set'?' / '+ht:''),
+ '3. Eyewear / headgear: '+(v('glass')==='Yes'?'glasses':'no glasses recorded')+(/cap/i.test(hair)?' • headwear detected':''),
+ '4. Upper apparel & palette: '+tops,
+ '5. Lower apparel & footwear: '+bots+' • footwear not automated',
+ '6. Scars / tattoos: not automated, manual review required',
+ '7. Posture & kinematic role: '+role].join('\n')}
+function runScene(k){if(!k)return;const cb=document.querySelector(`#sg .sc[data-k="${k}"] input`);if(cb&&!cb.checked)return blankScene(k);
+ const opt=[...$('scene').options].find(o=>o.value===k);SCENE=opt?opt.text.replace(/^Scene \d: /,''):'';trig(k)}
+let powerCut=false;
+function powerToggle(){powerCut=!powerCut;$('pwt').textContent=powerCut?'⚡ Main Power Cut -> Instant Dual-Battery/Solar Failover Active':'☀️ Solar + 🔋 Dual-Battery + ⚡ Backup Power: ONLINE (Failover Ready)';$('pwt').style.color=powerCut?'#f59e0b':'var(--gn)';$('pwb').textContent=powerCut?'⟲ Restore Main Power':'⚡ Simulate Main Power Cut';log.push('[power] '+(powerCut?'Main power cut: failover active':'Main power restored'));if(powerCut){$('pwt').textContent+=' • 🟢 Green Floor Laser Exit Pathfinding: PROJECTED';exitProjected()}toast(powerCut?'Failover active: dual-battery and solar':'Main power restored')}
+function deleteLock(){const k=prompt('High-Security Multi-Party Judicial + Police Master Key:');const m='🔒 ANTI-BRIBE WORM LOCK ACTIVE: Evidence cannot be deleted or tampered with locally. Cryptographic chain preserved.';log.push('[security] Deletion attempt blocked'+(k?' (master key request recorded)':''));addWorm('Deletion attempt blocked');toast(m);if(cur)dossier();else $('dos').textContent='[SECURITY LOG]\n'+log.join('\n')}
+let drillPermit=false;
+function drillMode(){if(drillPermit){drillPermit=false;$('fdm').textContent='🎆 Fireworks / Fire Drill Mode';toast('Fire drill mode OFF');return}
+ if(prompt('Fireworks / Fire Drill permit code (simulation):')==='123456'){drillPermit=true;fireOn=false;$('fdm').textContent='🎆 DRILL PERMIT ACTIVE';toast('Drill permit active (simulation): 999 held, sprinkler locked');log.push('[fire] Drill permit active (simulation)')}else toast('Wrong code')}
+function variantChg(){log.push('[hardware] Selected: '+$('var').value);toast($('var').value)}
+function trigFire(){
+ if(drillPermit){$('foot').classList.remove('fl');$('foot').style.color='#f59e0b';$('foot').textContent='🎆 CONTROLLED FESTIVE / DRILL EVENT • Sprinkler locked • 999 held (no panic)';log.push('[fire] Festive/drill telemetry: sprinkler locked, 999 dispatch held');seal('[FIRE TEST — CONTROLLED DRILL]\nTime: '+new Date().toLocaleString()+'\nSprinkler valve: LOCKED\n999 Fire dispatch: HELD (drill permit active)');return}
+ fireOn=true;beep();say('Fire detected. Red circulating beacon active. Fire Tetrahedron suppression and HEPA carbon smoke neutralizer engaged. Fire Department notified.');
+ $('foot').style.color='#ef4444';$('foot').classList.add('fl');$('foot').textContent='🔥 FIRE / SMOKE ALARM ACTIVE • Fire Department + Security Room DISPATCHED';
+ log.push('[fire] Optical smoke/thermal trigger; sprinkler activated; Fire Department notified');
+ seal('[FIRE / SMOKE EVENT]\nTime: '+new Date().toLocaleString()+'\nOptical smoke / thermal trigger: CONFIRMED\nFire Tetrahedron mist sprinkler: ACTIVATED (breaks heat, oxygen, fuel and chemical chain reaction)\nOnboard HEPA H13 + activated carbon scrubber: ENGAGED\nBuilding HVAC filter/purifier relay: TRIGGERED\nFire Department + Security Room: DISPATCHED\n🟢 Green Floor Laser Exit Pathfinding: PROJECTED');log.push('🟢 Green Floor Laser Exit Pathfinding: PROJECTED')}
+function exitProjected(){log.push('🟢 Green Floor Laser Exit Pathfinding: PROJECTED');if(cur)dossier();else $('dos').textContent='[EXIT PATHFINDING]\n'+log.join('\n')}
+function paBroadcast(){const m=prompt('Live PA announcement:','Attention all occupants: Follow the green floor laser exit path to the nearest stairwell calmly.');if(!m)return;say(m);toast('📢 PA Broadcast transmitted via Pod Omni-Speaker');log.push('[PA-Broadcast] '+m);if(cur)dossier();else $('dos').textContent='[PA BROADCAST LOG]\n'+log.join('\n')}
+function locChg(){$('tb').style.display=['MRT/LRT Train','Public Bus'].includes($('loc').value)?'flex':'none'}
+function trackExit(){const txt=`Transit: ${$('tl').value} • Destination: ${$('td').value} • Attacker exit stop: ${$('ts').value}`;log.push(`[video ${fmt(V.currentTime||0)}] ${txt}`);toast('🏃 Exit tracked: '+$('ts').value);if(cur)dossier();else $('dos').textContent='[TRANSIT LOG]\n'+log.join('\n')}
+function pullLever(){trig('manual');if(demoBusy)setTimeout(()=>say('Level 4 Emergency detected. Threat action recognized. Autonomous e-Police report filed.'),400)}
+function autoDemo(){if(demoBusy)return;demoBusy=true;voiceOn=true;toast('▶ 30-second showcase: lever, alarm, voice, dossier');
+ demoPull=true;
+ setTimeout(()=>{if(MUG.a||MUG.v)AI.locked=true;else toast('Tip: load a clip and mark faces to lock stills')},2000);
+ setTimeout(()=>{if(demoPull){demoPull=false;pullLever()}},1800);
+ setTimeout(()=>{$('scene').value='hair_grab';runScene('hair_grab')},4000);
+ setTimeout(()=>{demoBusy=false},30000)}
+let clipExt='webm';
+function zone(src,x,y,w,h){x=Math.max(0,Math.round(x));y=Math.max(0,Math.round(y));w=Math.max(2,Math.min(Math.round(w),src.width-x));h=Math.max(2,Math.min(Math.round(h),src.height-y));return{d:src.getContext('2d').getImageData(x,y,w,h).data,w,h}}
+function hairLabel(ref,sorted,n){const[h,s,v]=hsv(ref[0],ref[1],ref[2]);if(v<.38&&(s<.3||h<50||h>=330))return'Jet Black';if(v<.5&&s<.45&&(h<50||h>=330||s<.3))return'Dark Brown';
+ if(s>.3&&h>=50&&h<330)return'Headwear/Cap';
+ const sec=sorted&&sorted[1];if(sec&&sec.length>n*.2){const m=[0,1,2].map(i=>sec.reduce((a,c)=>a+c[i],0)/sec.length);if(Math.hypot(m[0]-ref[0],m[1]-ref[1],m[2]-ref[2])>90)return'Dyed/Highlighted'}
+ if(v<.22)return'Jet Black';if(v>.6&&h>=30)return'Blonde';if(h<35&&s>.3&&v>=.3)return'Chestnut';return'Dark Brown'}
+function hairAt(p,src,cx,ey,W){
+ const H=W*1.2,T=zone(src,cx-.6*W,ey-.8*H,1.2*W,.4*H),L=zone(src,cx-.95*W,ey-.3*H,.45*W,1.2*H),R=zone(src,cx+.5*W,ey-.3*H,.45*W,1.2*H);
+ const hs=(r,g,b)=>{if(!skin(r,g,b))return false;const mx=Math.max(r,g,b),mn=Math.min(r,g,b),sat=mx?(mx-mn)/mx:0,dd=(mx-mn)||1,hu=mx===r?60*((g-b)/dd):60*(2+(b-r)/dd);return !((hu>=35&&mx>150&&sat>.35)||(sat>.6&&mx<180))};
+ const px=z=>{const o=[];for(let i=0;i<z.d.length;i+=4){const r=z.d[i],g=z.d[i+1],b=z.d[i+2];if(!hs(r,g,b))o.push([r,g,b])}return o};
+ const bgAt=(dx,dy)=>{const z=zone(src,cx+dx*W-.08*W,ey+dy*H-.08*H,.16*W,.16*H);const pp=px(z);return pp.length?[0,1,2].map(i=>pp.reduce((a,c)=>a+c[i],0)/pp.length):null};
+ const bgs=[bgAt(-1.6,-1.1),bgAt(1.6,-1.1),bgAt(-1.6,-.2),bgAt(1.6,-.2)].filter(Boolean);
+ const bg=bgs.length?[0,1,2].map(i=>bgs.reduce((a,c)=>a+c[i],0)/bgs.length):null;
+ const isBg=c=>!!bg&&Math.hypot(c[0]-bg[0],c[1]-bg[1],c[2]-bg[2])<45;
+ const tp=px(T).filter(c=>!isBg(c)),total=T.w*T.h;
+ // dominant colour cluster in the top zone (ignores skin and most background noise)
+ const bins={};tp.forEach(c=>{const k=(c[0]>>5)+','+(c[1]>>5)+','+(c[2]>>5);(bins[k]=bins[k]||[]).push(c)});
+ let top=null;for(const k in bins)if(!top||bins[k].length>top.length)top=bins[k];const sortedBins=Object.values(bins).sort((a,b)=>b.length-a.length);
+ let ref=null,colName='';
+ if(top&&top.length>total*.15){ref=[0,1,2].map(i=>top.reduce((a,c)=>a+c[i],0)/top.length);colName=hairLabel(ref,sortedBins,tp.length)}
+ const sideCol=z=>{const pp=px(z).filter(c=>!isBg(c));if(!pp.length)return null;const c=[0,1,2].map(i=>pp.reduce((a,q)=>a+q[i],0)/pp.length);return c};
+ if(!ref){const sc=sideCol(L)||sideCol(R);if(sc){ref=sc;colName=hairLabel(sc,[],0)}}
+ const near=(c)=>ref&&Math.hypot(c[0]-ref[0],c[1]-ref[1],c[2]-ref[2])<70;
+ const frac=z=>{const pp=px(z).filter(c=>!isBg(c));return pp.length?pp.filter(near).length/((z.w*z.h)||1):0};
+ const fT=tp.filter(near).length/(total||1), fS=Math.max(frac(L),frac(R));
+ let tex=0,n=0;for(let y=0;y<T.h;y++)for(let x=1;x<T.w;x++){const i=(y*T.w+x)*4,j=i-4;tex+=Math.abs((.3*T.d[i]+.59*T.d[i+1]+.11*T.d[i+2])-(.3*T.d[j]+.59*T.d[j+1]+.11*T.d[j+2]));n++}
+ tex=n?tex/n:0;
+ let type;
+ if(fS>.45)type=tex>18?'Curly':'Long straight';
+ else type=tex>18?'Curly':tex>10?'Wavy':'Short straight';
+ $(p+'_hair').value=colName;$(p+'_htype').value=type;
+ return{colName,type,fT,fS,tex}}
+let fireOn=false;
+let SCENE='',demoPull=false,demoBusy=false;
+let REC_LOCK=null;
+function torsoLuma(P){if(!P||!P.neck||!P.hip)return 0;const cx=(P.neck.x+P.hip.x)/2,cy=(P.neck.y+P.hip.y)/2,z=zone(sn,cx-P.tl*.15,cy-P.tl*.15,P.tl*.3,P.tl*.3),d=z.d;let t=0,n=0;for(let i=0;i<d.length;i+=4){t+=d[i]+d[i+1]+d[i+2];n++}return n?t/n:0}
+function ensureHead(P){if(P&&!P.head&&P.neck)P.head={x:P.neck.x,y:P.neck.y-.55*P.tl}}
+const STUDIO={a:null,v:null};
+const RECMAP={1:'wall_pin',2:'hair_grab',3:'hair_grab',4:'lifting',5:'harassment_hug',6:'choke',7:'pickpocket',8:'kidnapping',9:'friendly_hug'};
+const PROF={male:{gender:'Male',age:'Adult',hair:'Jet Black',htype:'Short straight',glass:'Yes',top:'T-shirt',tcol:'navy',btype:'Shorts',bcol:'light grey',build:'Average',note:'Unmasked • Eyeglasses • Navy T-shirt & Shorts'},
+female:{gender:'Female',age:'Adult',hair:'Jet Black',htype:'Tied / bun',glass:'Yes',top:'T-shirt',tcol:'pink',btype:'Trousers/jeans',bcol:'blue',build:'Slim',note:'Pink T-shirt & Blue Denim Jeans'}};
+function applyProf(p,key){const d=PROF[key];Object.keys(d).forEach(k=>{const e=$(p+'_'+k);if(e)e.value=d[k]});STUDIO[p]=key;build3D();upd()}
+function autoRec(name){const m=name.toLowerCase().match(/rec([1-9])/);if(!m)return;const key=RECMAP[m[1]],swap=m[1]==='6';STUDIO.a=STUDIO.v=null;MUG.a=MUG.v=null;REC_LOCK=key;document.querySelectorAll('#sg .sc').forEach(el=>{el.querySelector('input').checked=(el.dataset.k===key)});
+ applyProf('a',swap?'female':'male');applyProf('v',swap?'male':'female');
+ if(m[1]==='8')$('v_note').value='Yellow Cloth Over Face (Kidnap/Smothering) • Pink T-shirt & Blue Denim Jeans';
+ $('scene').value=key;V.addEventListener('loadeddata',function h(){V.removeEventListener('loadeddata',h);runScene(key)});
+ toast('Recognised '+name+' → preset: '+key)}
+let permit=false,voiceOn=true,chain='0'.repeat(64),DS=0;const worm=[],SEV={lifting:4,kidnapping:5,harassment_hug:4,choke:5,knife:5,lorry:5,ground_pin:4,wall_pin:4,hair_grab:4,fight:4,faint:3,lost_child:3,pickpocket:2};
+const mx=document.createElement('canvas').getContext('2d');
+function motionScore(){mx.canvas.width=80;mx.canvas.height=45;mx.drawImage(sn,0,0,80,45);const d=mx.getImageData(0,0,80,45).data,g=new Float32Array(3600);for(let i=0,j=0;i<d.length;i+=4,j++)g[j]=.3*d[i]+.59*d[i+1]+.11*d[i+2];let sc=0;if(AI.prevG){for(let j=0;j<3600;j++)sc+=Math.abs(g[j]-AI.prevG[j]);sc/=3600}AI.prevG=g;return sc}
+const AI={on:false,hist:[],dh:[],obs:[],last:0,lr:null};
+let cam=null,mark=null,cur=null,log=[],rec=null,clipUrl=null,build3D=()=>{};
+function toast(m){const t=$('toast');t.textContent=m;t.style.display='block';clearTimeout(t._h);t._h=setTimeout(()=>t.style.display='none',3500)}
+const fmt=s=>Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0');
+function save(url,name){const a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove()}
+
+/* ---------- Colour naming ---------- */
+const PAL={black:[20,20,20],white:[240,240,240],grey:[128,128,128],'light grey':[190,190,190],'dark grey':[70,70,70],red:[200,30,30],maroon:[110,20,30],orange:[240,130,20],yellow:[240,220,40],olive:[110,110,40],green:[40,150,60],teal:[20,150,150],blue:[40,80,200],navy:[20,30,90],purple:[120,50,150],pink:[240,130,170],brown:[110,70,40],'dark brown':[60,40,25],blonde:[220,190,110],beige:[210,185,150],'chestnut':[110,50,30],'jet black':[15,15,15]};
+function hsv(r,g,b){r/=255;g/=255;b/=255;const m=Math.max(r,g,b),n=Math.min(r,g,b),d=m-n;let h=0;if(d){h=m==r?((g-b)/d)%6:m==g?(b-r)/d+2:(r-g)/d+4;h*=60;if(h<0)h+=360}return[h,m?d/m:0,m]}
+function cname(r,g,b,hair){const[h,s,v]=hsv(r,g,b);
+ if(v<.2)return'black';
+ if(s<.18)return hair?(v>.75?'white':v>.45?'grey':'black'):(v>.8?'white':v>.55?'light grey':v>.3?'grey':'dark grey');
+ if(h<15||h>=345)return v<.45?'maroon':'red';
+ if(h<45)return v<.35?'dark brown':v<.6?'brown':hair?(s>.35?'blonde':'brown'):(s<.4?'beige':'orange');
+ if(h<70)return hair?(v>.55?'blonde':'brown'):(v<.5?'olive':'yellow');
+ if(h<170)return'green';if(h<200)return'teal';if(h<255)return v<.4?'navy':'blue';if(h<290)return'purple';return'pink'}
+const skin=(r,g,b)=>{const y=.299*r+.587*g+.114*b,cb=128-.169*r-.331*g+.5*b,cr=128+.5*r-.419*g-.081*b;return cb>77&&cb<127&&cr>133&&cr<173&&y>50&&!(r>175&&g<165&&b>140)};
+function dom(src,x,y,w,h,hair){x=Math.min(Math.max(0,x|0),src.width-2);y=Math.min(Math.max(0,y|0),src.height-2);w=Math.max(2,Math.min(w|0,src.width-x));h=Math.max(2,Math.min(h|0,src.height-y));
+ const d=src.getContext('2d').getImageData(x,y,w,h).data,B={};let n=0,sk=0;
+ for(let i=0;i<d.length;i+=4){n++;if(skin(d[i],d[i+1],d[i+2])){sk++;continue}const k=(d[i]>>5)<<6|(d[i+1]>>5)<<3|(d[i+2]>>5),o=B[k]||(B[k]=[0,0,0,0]);o[0]++;o[1]+=d[i];o[2]+=d[i+1];o[3]+=d[i+2]}
+ let best=null;for(const k in B)if(!best||B[k][0]>best[0])best=B[k];
+ return{name:best?cname(best[1]/best[0],best[2]/best[0],best[3]/best[0],hair):'',skin:n?sk/n:0}}
+function avg(src,x,y,w,h,hair){return dom(src,x,y,w,h,hair).name}
+function segSkin(a,b){if(!a||!b)return null;const m={x:(a.x+b.x)/2,y:(a.y+b.y)/2},z=Math.max(4,Math.hypot(a.x-b.x,a.y-b.y)*.3);return dom(sn,m.x-z/2,m.y-z/2,z,z).skin}
+/* ---------- Profile forms ---------- */
+const F=[['gender','Gender',['Male','Female']],['age','Age group',['Adult','Child','Teen','Senior']],['hair','Hair colour'],['htype','Hair type',['Short straight','Long straight','Curly','Wavy','Tied / bun','Bald','Covered (cap/hijab)']],['glass','Glasses',['No','Yes']],['top','Top',['T-shirt','Shirt','Jacket','Hoodie','Dress','Uniform','Long-sleeve top','Tank top']],['tcol','Top colour'],['btype','Bottom',['Trousers/jeans','Shorts','Skirt']],['bcol','Bottom colour'],['build','Build',['Slim','Average','Heavy','Tall','Short']],['note','Extra (mask, cap, bag, beard...)']];
+const form=p=>F.map(([k,l,o])=>`<label>${l}${o?`<select id="${p}_${k}" onchange="upd()">${['Not set',...o].map(x=>`<option>${x}</option>`).join('')}</select>`:`<input id="${p}_${k}" oninput="upd()" placeholder="not set">`}</label>`).join('');
+$('fa').innerHTML=form('a');$('fv').innerHTML=form('v');
+const val=(p,k)=>{const v=$(p+'_'+k).value;return v&&v!=='Not set'?v:''};
+const g=(p,k)=>val(p,k)||'not set';
+const desc=p=>{const v=k=>val(p,k),L=[],who=[v('gender'),v('age'),v('build')&&v('build')+' build'].filter(Boolean).join(', ');
+ if(who)L.push('• '+who);L.push('• Hair: '+([v('hair'),v('htype')].filter(Boolean).join(', ')||'not clear in footage'));
+ if(v('glass'))L.push('• Glasses: '+v('glass'));
+ L.push('• Wearing: '+([[v('tcol'),v('top')].filter(Boolean).join(' '),[v('bcol'),v('btype')].filter(Boolean).join(' ')].filter(Boolean).join(' with ')||'not clear in footage'));
+ if(v('note'))L.push('• Extra: '+v('note'));return L.join('\n')};
+function upd(){build3D();dossier()}
+
+/* ---------- Scenarios ---------- */
+const S={
+hair_grab:{l:'✋ Rear Hair Grab',t:'REAR HAIR GRAB ASSAULT',d:'Attacker seizes victim\'s hair from behind. Victim attempts a wrist peel.',p:{ax:-.3,az:0,ar:1.57,vx:.2,vz:0,vr:1.57,aa:[-2.6,-2.6],va:[-2.7,-2.7]}},
+choke:{l:'🛑 Throat Choke Attack',t:'THROAT CHOKE ATTACK',d:'Sustained hands-to-neck contact. Victim counters with an elbow strike.',p:{ax:-.3,az:0,ar:1.57,vx:.2,vz:0,vr:-1.57,aa:[-1.5,-1.5],va:[-1.1,-1.1]}},
+wall_pin:{l:'🚧 Wall/Door Pinning',t:'WALL PINNING CONFINEMENT',d:'Subject blocks victim against a wall. Palm-heel push escape attempted.',p:{ax:.2,az:0,ar:1.57,vx:.75,vz:0,vr:-1.57,aa:[-1.5,-1.5],va:[-1.4,-1.4],wall:1}},
+ground_pin:{l:'🛑 Ground Pinning',t:'GROUND PINNING INCIDENT',d:'Victim forced to the floor, attacker pressing down. Hip-bridge escape attempted.',p:{ax:-.15,az:.1,ar:1.57,vx:.25,vz:0,vr:-1.57,aa:[-1.5,-1.5],va:[-1,-1],fall:1}},
+pickpocket:{l:'👛 Pickpocket (Self-Defense Observed → Active Alert)',t:'PICKPOCKET / STREET THEFT',d:'Subject reaches into victim\'s pocket/bag. Theft intercepted.',p:{ax:-.3,az:.05,ar:1.57,vx:.1,vz:0,vr:1.57,aa:[-1.3,0],va:[0,0]}},
+knife:{off:1,l:'🔪 Armed Knife Threat',t:'ARMED BLADED WEAPON THREAT',d:'Bladed weapon arc detected. Instant Level 5 police dispatch.',p:{ax:-.5,az:0,ar:1.57,vx:.55,vz:0,vr:-1.57,aa:[0,-2.3],va:[-.8,-.8],blade:1}},
+lorry:{off:1,l:'🚛 Lorry Driver Attack',t:'LORRY DRIVER ASSAULT / HIJACK',d:'Driver assaulted at the cab. Cargo-theft and hijack alert sent to the fleet centre.',p:{ax:-.45,az:0,ar:1.57,vx:.35,vz:0,vr:-1.57,aa:[-1.6,-2.2],va:[-.9,-.9],blade:1}},
+fight:{l:'👊 Fight / Assault',t:'PHYSICAL ALTERCATION / ASSAULT',d:'Rapid strikes or grappling between two people at close range.',p:{ax:-.3,az:0,ar:1.57,vx:.2,vz:0,vr:-1.57,aa:[-1.2,-1.9],va:[-1,-.6]}},
+friendly_hug:{l:'🤝 Friendly / Couple Hug (Consensual — 0dB No Alarm)',calm:1,t:'CONSENSUAL AFFECTION (FRIENDLY / COUPLE HUG)',d:'CONSENSUAL AFFECTION DETECTED • NO ALARM TRIGGERED IN VENUE OR SYSTEM',msg:'CONSENSUAL AFFECTION DETECTED • NO ALARM TRIGGERED IN VENUE OR SYSTEM',q:1,na:1,p:{}},
+harassment_hug:{l:'🚨 Harassment Hug / Non-Consensual Grasp',t:'HARASSMENT HUG / NON-CONSENSUAL GRASP',d:'Non-consensual grasp from behind. Victim adopts a defensive push-away posture to break contact.',p:{ax:-.3,az:0,ar:1.57,vx:.2,vz:0,vr:-1.57,aa:[-1.4,-1.4],va:[-1.2,-1.2]}},
+pickpocket_passive:{off:1,l:'👛 Pickpocket (No Self-Defense — Not Detected)',calm:1,t:'PICKPOCKET • NO SELF-DEFENSE OBSERVED',d:'⚪ NO SELF-DEFENSE KINEMATICS OBSERVED — LISTED AS NOT DETECTED',msg:'⚪ NO SELF-DEFENSE KINEMATICS OBSERVED — LISTED AS NOT DETECTED',q:1,p:{}},
+standby:{off:1,l:'🤰 Pregnant Commuter Standby',t:'QUIET MONITORING (PREGNANT COMMUTER STANDBY)',d:'Passive monitoring of a pregnant commuter. System alert logged with no local siren.',q:1,na:1,p:{}},
+lifting:{l:'🏋️ Body Lift / Takedown',t:'NON-CONSENSUAL BODY LIFT / GRAPPLING',d:'Attacker lifts victim off floor center-of-gravity. Defensive weight-drop and elbow counter advised.',p:{ax:-.2,az:0,ar:1.57,vx:.15,vz:0,vr:1.57,aa:[-1.4,-1.4],va:[-2.2,-2.2]}},
+kidnapping:{l:'😷 Kidnapping (Cloth Over Face)',t:'KIDNAPPING / CLOTH SMOTHERING ATTEMPT',d:'Attacker covers victim face/airway with cloth from behind. Immediate Level 5 Police 999 dispatch.',p:{ax:-.22,az:0,ar:1.57,vx:.15,vz:0,vr:1.57,aa:[-1.6,-1.6],va:[-2.5,-2.5]}},
+manual:{l:'🔴 Manual Dispatch',t:'MANUAL EMERGENCY DISPATCH (LEVER)',d:'Operator pulled the physical emergency dispatch lever. Alarm, voice alert and dossier updated.',p:{}},
+faint:{off:1,l:'🦯 OKU / Elderly Fall (Medical Rescue)',t:'MEDICAL RESCUE: UNRESPONSIVE FALL',d:'Subject collapsed. Silent alarm: medical team dispatched, no siren.',q:1,na:1,p:{vx:0,vz:0,vr:0,aa:[0,0],va:[0,0],fall:1,noA:1}},
+lost_child:{l:'🧒 Lost Toddler (Silent Guard Alert — 0dB Siren)',off:1,t:'UNATTENDED LOST TODDLER',d:'Small child detected without adults. Silent floor-guard notification sent.',q:1,na:1,p:{vx:0,vz:0,vr:0,aa:[0,0],va:[0,0],noA:1,child:1}}};
+const IDLE={ax:-.7,az:0,ar:1.57,vx:.7,vz:0,vr:-1.57,aa:[0,0],va:[0,0]};
+$('sg').innerHTML=Object.entries(S).filter(([k])=>k!=='manual').map(([k,s])=>`<div class="sc" data-k="${k}"><input type="checkbox" ${s.off?'':'checked'} ><button onclick="trig('${k}')">${s.l}</button></div>`).join('');
+
+let AC=null,buzzOn=true;
+function sensF(){return (11-(+$('sens').value||5))/6}
+function ac(){if(!AC)AC=new(window.AudioContext||window.webkitAudioContext)();if(AC.state==='suspended')AC.resume();return AC}
+document.addEventListener('pointerdown',()=>{try{ac()}catch(e){}});
+function buzz(sec,force){if(!buzzOn&&!force)return;try{const a=ac(),t=a.currentTime;for(let k=0;k<Math.ceil(sec/.5);k++){const o=a.createOscillator(),g=a.createGain(),st=t+k*.5;o.type='sawtooth';o.frequency.value=170;g.gain.setValueAtTime(0,st);g.gain.linearRampToValueAtTime(.35,st+.02);g.gain.setValueAtTime(.35,st+.35);g.gain.linearRampToValueAtTime(0,st+.42);o.connect(g);if(a.createStereoPanner){const pn=a.createStereoPanner();pn.pan.setValueAtTime(-1,st);pn.pan.linearRampToValueAtTime(1,st+.15);pn.pan.linearRampToValueAtTime(-1,st+.3);pn.pan.linearRampToValueAtTime(1,st+.45);g.connect(pn);pn.connect(a.destination)}else g.connect(a.destination);o.start(st);o.stop(st+.45)}}catch(e){}}
+function beep(){buzz(2)}
+function toggleBuzz(){buzzOn=!buzzOn;$('bz').textContent=buzzOn?'🔔 Buzzer ON':'🔕 Buzzer OFF';toast('Buzzer '+(buzzOn?'ON':'OFF'))}
+function blankScene(k){['a','v'].forEach(p=>{const c=$('face_'+p).getContext('2d');c.fillStyle='#000';c.fillRect(0,0,120,120);c.fillStyle='#94a3b8';c.font='bold 10px sans-serif';c.textAlign='center';c.fillText('⚪ NO MATCHING',60,54);c.fillText('SCENE IN ACTIVE',60,68);c.fillText('FEED — BLANK',60,82)});$('ban').style.display='none';$('foot').classList.remove('fl');$('foot').style.color='var(--gn)';$('foot').textContent='⚪ IRRELEVANT TO ACTIVE VIDEO ('+(S[k]?S[k].t:k)+') — FALSE POSITIVE BLOCKED (0dB SILENT)';$('dos').textContent='[AI SCENE VERIFICATION — IRRELEVANT SCENARIO BLOCKED]\nSelected Detector: '+(S[k]?S[k].t:k)+'\nActive Feed Verification: Not present in current video stream.\nResult: ⚪ NO MATCHING SCENE IN ACTIVE FEED — BLANK (0dB Silent).'}
+function trig(k,auto){const s=S[k];if(!auto){const cb=document.querySelector('#sg .sc[data-k="'+k+'"] input');if(cb&&!cb.checked)return blankScene(k)}cur=k;if(S[k].calm){if(k==='friendly_hug'){$('foot').classList.remove('fl');$('foot').style.color='var(--gn)';$('foot').textContent='💚 CONSENSUAL COUPLE HUG DETECTED • 0dB NO ALARM IN VENUE OR SYSTEM'}log.push(`[video ${fmt(V.currentTime||0)}] ${S[k].msg}`);dossier();toast('⚪ '+S[k].msg);return}if(!auto)AI.obs=[];log.push(`[video ${fmt(V.currentTime||0)}] ${s.t}`);
+ $('atk').innerHTML=log.slice(-6).reverse().map(x=>'🚨 '+x).join('<br>');
+ $('foot').classList.add('fl');$('foot').textContent=permit?`🎬 STAGED PRODUCTION PERMIT: ${s.t} • dispatch held in staging log`:`🚨 INCIDENT ACTIVE: ${s.t} • SEVERITY LEVEL ${SEV[k]||3}/5 • AUTHORITIES DISPATCHED`;$('foot').style.color='#ef4444';
+ const b=$('ban');b.textContent='⚠ DETECTED: '+s.t;b.style.display='block';clearTimeout(b._h);b._h=setTimeout(()=>b.style.display='none',5000);
+ if(!s.q&&!permit)beep();
+ if((V.videoWidth||V.srcObject)&&!(rec&&rec.state==='recording'))recClip(10);
+ addWorm(fmt(V.currentTime||0)+' '+s.t);dossier();
+ say(`Alert. ${s.t}. Severity level ${SEV[k]||3}. ${s.na?'':'Attacker: '+brief('a')+'. '}Victim: ${brief('v')}. ${permit?'Dispatch held in staging log.':'Dispatching police and medical teams.'}`)}
+function dossier(){const s=S[cur];if(!s)return;const t=`[OFFICIAL E-POLICE DOSSIER #E-POL-999]\nTIME: ${new Date().toLocaleString()}\nVIDEO TIME: ${fmt(V.currentTime||0)}\nCLASSIFICATION: ${s.t}\nSTUDIO SCENE: ${SCENE||'live footage'}\nSEVERITY: Level ${SEV[cur]||3}/5${permit?'  [STAGED PRODUCTION PERMIT - dispatch held]':''}${!permit&&!s.q?'\n🔊 Stereophonic Omni-Directional Siren Active':''}\n\n🔴 ATTACKER ID:\n${s.na?'• N/A - non-criminal event':sevenPt('a')}\n\n🔵 VICTIM ID:\n${sevenPt('v')}\n• Protected by Lawful Self-Defense Shield\n\nWHAT HAPPENED (AI ANALYSIS):\n${narr(s)}${AI.t0&&!s.na?`\n\nAGGRESSION TIMELINE:\n• First contact by the ATTACKER (as assigned) at video ${AI.t0}\n• Victim responses are logged as self-defence`:''}\n\nSELF-DEFENCE INVOLVED:\n• Observed: ${AI.obs.length?AI.obs.join('; '):'no clear defensive action detected yet'}\n${(SD[cur]||'').split(' | ').map(x=>'• Advised: '+x).join('\n')}\n\nStatus: Auto-dispatched to Municipal Safety Hub.\n\nINCIDENT LOG:\n${log.join('\n')}\n\nWORM CHAIN OF CUSTODY (SHA-256 linked):\n${worm.join('\n')||'pending'}`;seal(t)}
+function dlDossier(){save(URL.createObjectURL(new Blob([$('dos').textContent],{type:'text/plain'})),'Court_Evidence_Dossier_Case999.txt')}
+
+/* ---------- WORM seal, voice, permit, hands-first ---------- */
+async function sha(t){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(t));return[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}
+function seal(t){$('dos').textContent=t;const id=++DS;sha(t).then(h=>{if(id===DS)$('dos').textContent=t+'\n\nSHA-256 SEAL: '+h+'\nCHAIN HEAD: '+chain.slice(0,16)}).catch(()=>{})}
+async function addWorm(e){try{chain=await sha(chain+e);worm.push(chain.slice(0,16)+'... <- '+e);dossier()}catch(x){}}
+function say(t){if(!voiceOn||!window.speechSynthesis)return;speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.rate=.95;speechSynthesis.speak(u)}
+function voiceT(){voiceOn=!voiceOn;toast('Voice dispatcher '+(voiceOn?'ON':'OFF'));if(!voiceOn&&window.speechSynthesis)speechSynthesis.cancel()}
+function permitMode(){if(permit){permit=false;$('pm').textContent='🔐 Staged Filming Mode';toast('Staged filming OFF');return}if(prompt('Staged production permit passcode:')==='123456789'){permit=true;$('pm').textContent='🎬 PERMIT #FINAS-DBKL-884 ACTIVE';toast('Permit #FINAS-DBKL-884 active: sirens muted, dispatch held')}else toast('Wrong passcode')}
+let HD=null;
+async function handsMode(){const b=$('hb');if(HD){HD.stop=true;HD=null;$('cur').style.display='none';b.textContent='🖐 Hands-first';return}
+ try{toast('Loading hand tracking (needs internet + camera)...');await ldAny('@mediapipe/hands@0.4.1675469240/hands.js');
+  const st=await navigator.mediaDevices.getUserMedia({video:true}),v=document.createElement('video');v.srcObject=st;v.muted=true;await v.play();
+  const h=new Hands({locateFile:f=>'https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/'+f});h.setOptions({maxNumHands:1,modelComplexity:0,minDetectionConfidence:.6,minTrackingConfidence:.6});let down=false;
+  h.onResults(r=>{const L=r.multiHandLandmarks&&r.multiHandLandmarks[0],c=$('cur');if(!L){c.style.display='none';return}
+   const t=L[4],i=L[8],x=(1-i.x)*innerWidth,y=i.y*innerHeight,p=Math.hypot(t.x-i.x,t.y-i.y)<.05;c.style.display='block';c.style.left=x+'px';c.style.top=y+'px';c.style.background=p?'#ef4444':'#06b6d4';
+   if(p&&!down){down=true;const e=document.elementFromPoint(x,y);e&&e.click&&e.click()}if(!p)down=false});
+  HD={stop:false};b.textContent='✋ Stop hands';toast('Pinch thumb + index finger to click');
+  (async()=>{while(HD&&!HD.stop){await h.send({image:v});await new Promise(r=>setTimeout(r,60))}})()}
+ catch(e){HD=null;toast('Hand tracking failed: '+(e.message||e))}}
+
+/* ---------- Video, webcam, snapshot, clip ---------- */
+function loadVid(e){const f=e.target.files[0];e.target.value='';if(f){if(cam){cam.getTracks().forEach(t=>t.stop());cam=null}V.srcObject=null;V.src=URL.createObjectURL(f);V.load();V.play().catch(()=>{});toast('Loaded '+f.name);autoRec(f.name)}}
+V.onerror=()=>toast('⚠ Codec not supported: this .mp4 is probably H.265/HEVC. Re-export it as H.264 MP4');
+$('vid').parentElement.ondragover=e=>e.preventDefault();$('vid').parentElement.ondrop=e=>{e.preventDefault();const f=e.dataTransfer.files[0];if(f){loadVid({target:{files:[f],value:''}})}};
+function webcam(){if(cam){cam.getTracks().forEach(t=>t.stop());cam=null;V.srcObject=null;return}
+ if(!navigator.mediaDevices)return toast('Webcam blocked here. Open the saved file directly in Chrome/Edge, or use Load Video.');
+ navigator.mediaDevices.getUserMedia({video:true}).then(s=>{cam=s;V.srcObject=s;V.play()}).catch(e=>toast('Webcam blocked ('+e.name+'). Click the camera icon in the address bar and Allow, or use Load Video.'))}
+if(window.self!==window.top)setTimeout(()=>toast('⚠ You are in a preview frame: uploads/webcam may be blocked. Save this file and open it in Chrome/Edge.'),800);
+function snap(){if(!V.videoWidth)return toast('Load a video first');const c=document.createElement('canvas');c.width=V.videoWidth;c.height=V.videoHeight;const x=c.getContext('2d');x.drawImage(V,0,0);x.fillStyle='#ef4444';x.font=Math.round(c.height/24)+'px sans-serif';x.fillText((cur?S[cur].t:'SNAPSHOT')+' • '+new Date().toLocaleString(),10,c.height-12);save(c.toDataURL('image/png'),'GuardianSense_snapshot.png');toast('📸 Snapshot downloaded')}
+function recClip(sec){
+ if(rec&&rec.state==='recording'){rec.stop();return}
+ if(typeof MediaRecorder==='undefined'||!V.videoWidth)return toast('Load a video first (use Chrome/Edge)');
+ const mt=MediaRecorder.isTypeSupported&&MediaRecorder.isTypeSupported('video/mp4')?'video/mp4':'video/webm';clipExt=mt==='video/mp4'?'mp4':'webm';
+ const wc=document.createElement('canvas');wc.width=V.videoWidth;wc.height=V.videoHeight;const wx=wc.getContext('2d');let run=true;
+ (function paint(){if(!run)return;const bh=Math.round(wc.height/9);wx.drawImage(V,0,0,wc.width,wc.height);wx.fillStyle='rgba(0,0,0,.6)';wx.fillRect(0,wc.height-bh,wc.width,bh);wx.fillStyle='#fff';wx.font=Math.round(bh*.4)+'px sans-serif';wx.fillText('GUARDIANSENSE XR • '+(cur?S[cur].t:'MONITORING')+' • '+new Date().toLocaleString(),12,wc.height-bh*.35);requestAnimationFrame(paint)})();
+ const ch=[];rec=new MediaRecorder(wc.captureStream(30),{mimeType:mt});rec.ondataavailable=e=>e.data.size&&ch.push(e.data);
+ rec.onstop=()=>{run=false;clipUrl=URL.createObjectURL(new Blob(ch,{type:mt}));$('db').disabled=false;$('rb').textContent='⏺ Record 10s clip';toast('🎬 Clip ready - press Download clip')};
+ rec.start();$('rb').textContent='⏹ Recording... (click to stop)';setTimeout(()=>rec&&rec.state==='recording'&&rec.stop(),sec*1000)}
+function saveClip(){if(clipUrl)save(clipUrl,'Incident_Clip_Case999.'+clipExt)}
+
+/* ---------- Face marking & auto description ---------- */
+const fr=document.createElement('canvas');
+function toVid(px,py){const r=ov.getBoundingClientRect(),s=Math.min(r.width/V.videoWidth,r.height/V.videoHeight),ox=(r.width-V.videoWidth*s)/2,oy=(r.height-V.videoHeight*s)/2;return[(px-ox)/s,(py-oy)/s]}
+function startMark(p){if(!V.videoWidth)return toast('Load a video first');V.pause();mark=p;const r=ov.getBoundingClientRect();ov.width=r.width;ov.height=r.height;ov.style.pointerEvents='auto';ov.style.cursor='crosshair';toast('Drag a box around the '+(p==='a'?'ATTACKER':'VICTIM')+'\'s head (include hair)')}
+let d0=null;
+ov.onpointerdown=e=>{if(!mark)return;const r=ov.getBoundingClientRect();d0=[e.clientX-r.left,e.clientY-r.top];ov.setPointerCapture(e.pointerId)};
+ov.onpointermove=e=>{if(!d0)return;const r=ov.getBoundingClientRect();octx.clearRect(0,0,ov.width,ov.height);octx.strokeStyle=mark==='a'?'#ef4444':'#06b6d4';octx.lineWidth=2;octx.strokeRect(d0[0],d0[1],e.clientX-r.left-d0[0],e.clientY-r.top-d0[1])};
+ov.onpointerup=e=>{if(!d0)return;const r=ov.getBoundingClientRect(),a=toVid(d0[0],d0[1]),b=toVid(e.clientX-r.left,e.clientY-r.top),p=mark;d0=null;mark=null;ov.style.pointerEvents='none';
+ setTimeout(()=>octx.clearRect(0,0,ov.width,ov.height),1200);cropFace(p,Math.min(a[0],b[0]),Math.min(a[1],b[1]),Math.abs(a[0]-b[0]),Math.abs(a[1]-b[1]))};
+function cropFace(p,x,y,w,h){if(w<10||h<10)return toast('Box too small - try again');
+ fr.width=V.videoWidth;fr.height=V.videoHeight;fr.getContext('2d').drawImage(V,0,0);
+ const side=Math.max(w,h);setMug(p,fr,x+w/2,y+h/2,side);
+ hairAt(p,fr,x+w/2,y+h*.45,w*.85);
+ $(p+'_tcol').value=avg(fr,x,y+h*1.2,w,h*1.2);
+ $(p+'_bcol').value=avg(fr,x,y+h*3,w,h*1.2);
+ AI.locked=true;upd();toast('✅ Face captured. Hair/top/trousers colours auto-sampled — set hair type, glasses etc. below')}
+
+/* ---------- AI auto-detect (MoveNet multi-pose, runs in your browser) ---------- */
+const SD={
+lifting:"Drop your center of gravity and drive the hips down to break the lift | Strike backward with an elbow to the attacker's ribs or face | Land, step clear and run to people",
+kidnapping:"Turn the head and pull the cloth or hand away from the airway | Strike backward with elbows and stamp on the attacker's foot | Get to open air and shout for help, call 999",
+harassment_hug:"Push away with both palms to the chest | Turn hips out and create distance | Shout, move toward people and exits",
+choke:"Tuck chin to chest and raise shoulders to protect the airway | Peel one wrist outward (thumb side), step back and turn out of the grip | Elbow or knee strike, then shout and run",
+hair_grab:"Clamp the attacker's hand to your head so it cannot yank | Tuck chin, turn into the grip and peel the fingers back | Elbow or palm strike, break free, run and shout",
+wall_pin:"Palm-heel strike to chin or nose, drive forearms up through the arms | Pivot hips off the wall and shout | Escape toward people and exits",
+ground_pin:"Trap one arm and hip-bridge to roll the attacker off | Frame with forearms on hips/neck, use a knee shield | Get to your feet and run to safety",
+pickpocket:"Grab the wrist, shout and draw attention | Keep bags zipped and in front; do not chase the thief | Report to security or police",
+knife:"Create distance and keep a barrier (car, table, bag) between you | Never grab the blade; run, shout, call police | If cornered, use a bag or jacket as a shield",
+lorry:"Lock doors and press the fleet SOS beacon | Do not resist for cargo, protect your life | Keep the dash-cam recording",
+fight:"Create distance and keep hands up to protect the face | Block, do not trade blows; exit and shout for help | Do not chase; go to a public place and call police",
+faint:"Not an attack: check responsiveness and breathing, call medical help | Place in recovery position and keep the airway clear",
+lost_child:"Stay with the child and alert security/floor staff | Do not leave the child alone; announce and wait for the guardian"};
+const brief=p=>[val(p,'tcol'),val(p,'top'),val(p,'hair')&&val(p,'hair')+' hair'].filter(Boolean).join(', ')||'description unavailable';
+const narr=s=>`At video time ${fmt(V.currentTime||0)} the AI detected "${s.t}". `+(s.na?'':`The attacker (${brief('a')}) targeted the victim (${brief('v')}). `)+s.d;
+const enabled=k=>{const i=document.querySelector(`#sg .sc[data-k="${k}"] input`);return !i||i.checked};
+const EDGES=[[5,6],[5,7],[7,9],[6,8],[8,10],[5,11],[6,12],[11,12],[11,13],[13,15],[12,14],[14,16],[0,5],[0,6]];
+const sn=document.createElement('canvas');
+function snapFrame(){sn.width=V.videoWidth;sn.height=V.videoHeight;sn.getContext('2d').drawImage(V,0,0)}
+function ld(u){return new Promise((ok,no)=>{const e=document.createElement('script');e.src=u;e.onload=ok;e.onerror=()=>no(new Error('could not load '+u.split('/').pop()));document.head.appendChild(e)})}
+function mkP(p){const K=p.keypoints.map(k=>k.score>.25?{x:k.x,y:k.y}:null),pts=K.filter(Boolean);if(pts.length<5)return null;
+ const xs=pts.map(a=>a.x),ys=pts.map(a=>a.y),x0=Math.min(...xs),x1=Math.max(...xs),y0=Math.min(...ys),y1=Math.max(...ys),h=y1-y0,w=x1-x0;
+ const mid=(a,b)=>a&&b?{x:(a.x+b.x)/2,y:(a.y+b.y)/2}:(a||b||null),neck=mid(K[5],K[6]),hip=mid(K[11],K[12]);
+ const head=K[0]||mid(K[1],K[2])||mid(K[3],K[4])||(neck&&{x:neck.x,y:neck.y-.1*h});
+ const tl=neck&&hip?Math.hypot(neck.x-hip.x,neck.y-hip.y):Math.max(h,w)*.35;
+ return{id:p.id,K,x0,y0,x1,y1,w,h,cx:(x0+x1)/2,cy:(y0+y1)/2,neck,hip,head,tl:Math.max(tl,10),wr:[K[9],K[10]].filter(Boolean)}}
+function rel(X,Y){const t=Y.tl,n=Y.neck||Y.head;if(!n||!Y.head)return[null,0];const d=pt=>pt?X.wr.map(w=>Math.hypot(w.x-pt.x,w.y-pt.y)/t):[9];
+ if(d(n).filter(v=>v<.8).length>=2)return['choke',3];
+ if(d(n).some(v=>v<.4))return['choke',2.6];
+ if(d(Y.head).some(v=>v<.65)&&X.wr.some(w=>w.y<n.y))return['hair_grab',2.5];
+ const sh=[Y.K[5],Y.K[6]].filter(Boolean);
+ if(X.wr.filter(w=>sh.some(q=>Math.hypot(w.x-q.x,w.y-q.y)/t<.7)).length>=2&&(Y.cx<V.videoWidth*.15||Y.cx>V.videoWidth*.85))return['wall_pin',2.2];
+ if(Y.w>1.2*Y.h&&X.wr.some(w=>w.x>Y.x0-t&&w.x<Y.x1+t&&w.y>Y.y0-t&&w.y<Y.y1+t))return['ground_pin',2.4];
+ if(Y.hip&&d(Y.hip).some(v=>v<.5)&&Math.hypot(X.cx-Y.cx,X.cy-Y.cy)<1.3*Y.h)return['pickpocket',2];
+ return[null,0]}
+function observe(v){const o=[];if(!v)return o;const sy=[v.K[5],v.K[6]].filter(Boolean).map(q=>q.y);
+ if(sy.length&&v.wr.some(w=>w.y<Math.min(...sy)))o.push("victim raised hands to guard the head/face");
+ if(AI.lr&&AI.lr.a&&v.wr.some(w=>AI.lr.a.wr.some(x=>Math.hypot(w.x-x.x,w.y-x.y)<.35*v.tl)))o.push("victim's hand on the attacker's wrist/arm (grip peel)");
+ if(v.w>1.2*v.h)o.push("victim is on the ground (fall or forced down)");
+ const dh=AI.dh;if(dh.length>8&&dh[dh.length-1]>dh[0]*1.5)o.push("victim created distance from the attacker (escape)");
+ return o}
+function draw(P,res){const r=ov.getBoundingClientRect();if(ov.width!==Math.round(r.width)||ov.height!==Math.round(r.height)){ov.width=r.width;ov.height=r.height}
+ octx.clearRect(0,0,ov.width,ov.height);const s=Math.min(r.width/V.videoWidth,r.height/V.videoHeight),ox=(r.width-V.videoWidth*s)/2,oy=(r.height-V.videoHeight*s)/2,f=(x,y)=>[ox+x*s,oy+y*s];
+ P.forEach(p=>{const ro=p===res[2]?'ATTACKER':p===res[3]?'VICTIM':'PERSON',c=ro==='ATTACKER'?'#ef4444':ro==='VICTIM'?'#06b6d4':'#facc15';octx.strokeStyle=c;octx.lineWidth=2;
+  EDGES.forEach(([i,j])=>{const a=p.K[i],b=p.K[j];if(a&&b){const[x,y]=f(a.x,a.y),[u,w]=f(b.x,b.y);octx.beginPath();octx.moveTo(x,y);octx.lineTo(u,w);octx.stroke()}});
+  const[bx,by]=f(p.x0,p.y0);octx.strokeRect(bx,by,p.w*s,p.h*s);octx.fillStyle=c;octx.font='bold 10px sans-serif';octx.fillText(ro,bx+2,by-3)})}
+function aiCapture(p,P){if(!P||!P.head)return;const hd=P.head,e=[P.K[3],P.K[4]].filter(Boolean),ey=[P.K[1],P.K[2]].filter(Boolean),
+ d=Math.max(e.length==2?Math.hypot(e[0].x-e[1].x,e[0].y-e[1].y):0,ey.length==2?Math.hypot(ey[0].x-ey[1].x,ey[0].y-ey[1].y)*2.2:0,P.h*.1,8);
+ setMug(p,sn,hd.x,hd.y-.25*d,2.2*d);if(STUDIO[p]){upd();return}
+ const eyes=[P.K[1],P.K[2]].filter(Boolean),ears=[P.K[3],P.K[4]].filter(Boolean);const eyeY=eyes.length==2?(eyes[0].y+eyes[1].y)/2:hd.y;const headW=ears.length==2?Math.hypot(ears[0].x-ears[1].x,ears[0].y-ears[1].y):(eyes.length==2?Math.hypot(eyes[0].x-eyes[1].x,eyes[0].y-eyes[1].y)*2.4:d*2.6);hairAt(p,sn,hd.x,eyeY,Math.max(headW,8));
+ if(P.neck&&P.hip){const m={x:(P.neck.x+P.hip.x)/2,y:(P.neck.y+P.hip.y)/2},t=dom(sn,m.x-P.tl*.2,m.y-P.tl*.15,P.tl*.4,P.tl*.3);if(t.name)$(p+'_tcol').value=t.name}
+ const legs=[];[[P.K[11],P.K[13]],[P.K[12],P.K[14]]].forEach(([a,b])=>{if(a&&b)[.2,.5].forEach(f=>{const z=Math.max(4,Math.hypot(a.x-b.x,a.y-b.y)*.3);legs.push(dom(sn,a.x+(b.x-a.x)*f-z/2,a.y+(b.y-a.y)*f-z/2,z,z))})});
+ legs.sort((a,b)=>a.skin-b.skin);if(legs.length&&legs[0].name&&legs[0].skin<.8)$(p+'_bcol').value=legs[0].name;
+ const av=a=>{const v=a.filter(x=>x!=null);return v.length?v.reduce((x,y)=>x+y)/v.length:null};
+ const ua=av([segSkin(P.K[5],P.K[7]),segSkin(P.K[6],P.K[8])]);if(ua!=null)$(p+'_top').value=ua>.75?'Tank top':ua>.5?'T-shirt':'Long-sleeve top';
+ const th=av([segSkin(P.K[11],P.K[13]),segSkin(P.K[12],P.K[14])]);if(th!=null)$(p+'_btype').value=th>.5?'Shorts':'Trousers/jeans';
+ upd()}
+function swapRoles(){const l=AI.lr;[MUG.a,MUG.v]=[MUG.v,MUG.a];drawMug('a');drawMug('v');F.forEach(([k])=>{const x=$('a_'+k),y=$('v_'+k),t=x.value;x.value=y.value;y.value=t});
+ if(l)[l.a,l.v]=[l.v,l.a];if(AI.roles)[AI.roles.a,AI.roles.v]=[AI.roles.v,AI.roles.a];AI.locked=true;AI.obs=observe(l&&l.v);upd();toast('Attacker and victim swapped and LOCKED')}
+function unlockRoles(){MUG.a=MUG.v=null;REC_LOCK=null;AI.locked=false;AI.roles=null;AI.lr=null;AI.last=0;AI.t0=null;['a','v'].forEach(p=>{const c=$('face_'+p).getContext('2d');c.fillStyle='#000';c.fillRect(0,0,120,120);F.forEach(([k])=>{const e=$(p+'_'+k);e.value=e.tagName=='SELECT'?'Not set':''})});toast('Unlocked: the AI will pick new faces at the next incident')}
+function handle(raw){
+ const P=raw.map(mkP).filter(p=>p&&Math.max(p.h,p.w)>V.videoHeight*.12).sort((a,b)=>b.w*b.h-a.w*a.h).slice(0,3);let res=[null,0,null,null];
+ if(AI.pe&&AI.pe.length)P.forEach(p=>{const q=AI.pe.reduce((m,o)=>Math.hypot(o.cx-p.cx,o.cy-p.cy)<Math.hypot(m.cx-p.cx,m.cy-p.cy)?o:m,AI.pe[0]);let wm=0;[9,10].forEach(i=>{if(p.K[i]&&q.K[i])wm+=Math.hypot(p.K[i].x-p.cx-q.K[i].x+q.cx,p.K[i].y-p.cy-q.K[i].y+q.cy)});p.mv=(Math.abs(q.w-p.w)+Math.abs(q.h-p.h)+wm)/p.h});
+ AI.pe=P;
+ if(P.length>1){AI.dh.push(Math.hypot(P[0].cx-P[1].cx,P[0].cy-P[1].cy)/Math.max(P[0].h,P[1].h));if(AI.dh.length>14)AI.dh.shift();
+  [[P[0],P[1]],[P[1],P[0]]].forEach(([X,Y])=>{const[k,q]=rel(X,Y);if(k&&q>res[1])res=[k,q,X,Y]});
+  if((res[0]=='pickpocket'||res[0]=='hair_grab')&&(P[0].mv||0)+(P[1].mv||0)>.2)res=['fight',1.5,res[2],res[3]];
+  if(!res[0]&&Math.hypot(P[0].cx-P[1].cx,P[0].cy-P[1].cy)/Math.max(P[0].h,P[1].h,P[0].w,P[1].w)<.9&&(P[0].mv||0)+(P[1].mv||0)>.12*sensF()){const[X,Y]=(P[0].mv||0)>=(P[1].mv||0)?[P[0],P[1]]:[P[1],P[0]];res=['fight',1.5,X,Y]}}
+ else if(P.length==1){AI.dh=[];const p=P[0];if(p.w>1.2*p.h)res=['faint',2,null,p];else if(p.h<.33*V.videoHeight)res=['lost_child',2,null,p]}
+ if(REC_LOCK&&res[0]==='fight')res=[null,0,null,null];
+ if(!res[0]&&!REC_LOCK&&P.length>=2&&(AI.motion||0)>22*sensF())res=['fight',1,P[0],P[1]];
+ if(AI.locked&&AI.roles&&AI.roles.a!=null){const X=P.find(p=>p.id===AI.roles.a),Y=P.find(p=>p.id===AI.roles.v);if(X&&Y){res[2]=X;res[3]=Y}}
+ if(P.length>=2){const fa=torsoLuma(P[0]),fb=torsoLuma(P[1]);const femP=fa>=fb?P[0]:P[1],maleP=femP===P[0]?P[1]:P[0];const fem=STUDIO.a==='female';res[2]=fem?femP:maleP;res[3]=fem?maleP:femP;
+ if(!MUG.a||!MUG.v){ensureHead(res[2]);ensureHead(res[3]);if(!MUG.a)aiCapture('a',res[2]);if(!MUG.v)aiCapture('v',res[3]);AI.locked=true;dossier()}}
+ if(!mark)draw(P,res);
+ AI.hist.push(res[0]);if(AI.hist.length>8)AI.hist.shift();const k=res[0];
+ if(k&&AI.hist.filter(x=>x===k).length>=4&&enabled(k)&&(k!==cur||Date.now()-AI.last>10000)){
+  AI.last=Date.now();if(!AI.locked){if(!AI.fresh)snapFrame();AI.lr={a:res[2],v:res[3]};AI.roles={a:res[2]&&res[2].id,v:res[3]&&res[3].id};aiCapture('a',res[2]);aiCapture('v',res[3]);AI.locked=true;AI.t0=fmt(V.currentTime||0)}else AI.lr={a:res[2]||(AI.lr&&AI.lr.a),v:res[3]||(AI.lr&&AI.lr.v)};AI.obs=observe(res[3]);trig(k,true);$('ai').textContent='🚨 AI detected: '+S[k].t}
+ else{$('ai').textContent=`👁 Tracking ${P.length} person(s) • ${k?'possible: '+S[k].t:'no incident'}`;
+  if(k&&k===cur&&AI.lr&&Date.now()-AI.last<10000){AI.lr={a:res[2]||AI.lr.a,v:res[3]||AI.lr.v};const o=observe(res[3]);if(o.join()!==AI.obs.join()){AI.obs=o;dossier()}}}}
+function box2p(b,i){const[x,y,w,h]=b.bbox,H=w>1.2*h,k=(a,c)=>H?{x:x+c*w,y:y+h*(.5+a*1.5),score:.9}:{x:x+w/2+a*w,y:y+c*h,score:.9},z={x:0,y:0,score:0};
+ return{id:'b'+i,keypoints:[k(0,.07),k(-.03,.06),k(.03,.06),k(-.06,.07),k(.06,.07),k(-.2,.2),k(.2,.2),k(-.25,.35),k(.25,.35),z,z,k(-.12,.55),k(.12,.55),k(-.12,.75),k(.12,.75),k(-.12,.95),k(.12,.95)]}}
+async function tick(){if(!AI.on)return;const st=$('ai');try{
+ if(!V.videoWidth||V.readyState<2)st.textContent='⏳ Waiting for the video...';
+ else if(V.paused||V.ended)st.textContent='⏸ Video is paused or ended. Press play so the AI can analyse it';
+ else{AI.n=(AI.n||0)+1;snapFrame();AI.fresh=true;AI.motion=motionScore();handle(AI.mode=='coco'?(await AI.det.detect(sn)).filter(b=>b.class=='person'&&b.score>.4).map(box2p):await AI.det.estimatePoses(sn));st.textContent+=' • AI mode: '+AI.mode+' • frames analysed: '+AI.n}
+ }catch(e){console.log(e);st.textContent='⚠ AI error while analysing: '+(e.message||e)}
+ setTimeout(tick,150)}
+async function ldAny(p){let er;for(const u of [`https://cdn.jsdelivr.net/npm/${p}`,`https://unpkg.com/${p}`]){try{await ld(u);return}catch(e){er=e}}throw er}
+async function aiToggle(){
+ if(AI.on){AI.on=false;AI.off=true;octx.clearRect(0,0,ov.width,ov.height);$('aib').textContent='🤖 START AI AUTO-DETECT';$('ai').textContent='AI is off.';return}
+ if(AI.loading)return;if(!V.videoWidth)return toast('Load a video first');AI.off=false;AI.loading=true;const st=t=>$('ai').textContent=t;
+ try{if(!AI.det){st('⏳ 1/3 Loading TensorFlow (needs internet)...');await ldAny('@tensorflow/tfjs@4.22.0/dist/tf.min.js');await tf.ready();
+  try{st('⏳ 2/3 Loading pose AI (MoveNet)...');await ldAny('@tensorflow-models/pose-detection@2.1.3/dist/pose-detection.min.js');
+   AI.det=await poseDetection.createDetector(poseDetection.SupportedModels.MoveNet,{modelType:poseDetection.movenet.modelType.MULTIPOSE_LIGHTNING,enableTracking:true});AI.mode='pose'}
+  catch(e){console.log(e);st('⏳ 2/3 Pose model unavailable, loading backup person detector...');await ldAny('@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js');AI.det=await cocoSsd.load({base:'lite_mobilenet_v2'});AI.mode='coco'}}}
+ catch(e){AI.loading=false;st('❌ AI could not load: '+e.message+'. Check your internet/firewall, then press Start again. Manual marking still works.');return}
+ AI.loading=false;AI.on=true;AI.hist=[];AI.pe=null;$('aib').textContent='⏹ STOP AI';st('👁 AI running ('+(AI.mode=='pose'?'full body pose':'backup person detector')+'). Play the video.');V.play().catch(()=>{});tick()}
+V.addEventListener('loadeddata',()=>{if(!AI.on&&!AI.loading&&!AI.off)aiToggle()});
+
+/* ---------- 3D scene ---------- */
+function resetView(){window.camReset&&window.camReset()}
+function person(o){const g=new THREE.Group(),M=c=>new THREE.MeshStandardMaterial({color:c,roughness:.7}),skin=0xf0c8a0;
+ const add=(geo,mat,x,y,z,par)=>{const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);(par||g).add(m);return m};
+ add(new THREE.BoxGeometry(.14,.5,.14),M(o.bot),-.1,.25,0);add(new THREE.BoxGeometry(.14,.5,.14),M(o.bot),.1,.25,0);
+ add(new THREE.BoxGeometry(.42,.55,.22),M(o.top),0,.78,0);
+ g.arms=[-1,1].map(s=>{const p=new THREE.Group();p.position.set(s*.27,1.02,0);add(new THREE.CylinderGeometry(.045,.045,.5),M(o.top),0,-.25,0,p);add(new THREE.SphereGeometry(.05),M(skin),0,-.52,0,p);g.add(p);return p});
+ g.blade=add(new THREE.BoxGeometry(.03,.32,.01),new THREE.MeshStandardMaterial({color:0xe2e8f0,metalness:1,roughness:.1}),0,-.72,.02,g.arms[1]);
+ add(new THREE.SphereGeometry(.14,20,16),M(skin),0,1.2,0);
+ [-1,1].forEach(s=>add(new THREE.SphereGeometry(.018),M(0x111111),s*.05,1.22,.13));
+ const h=o.ht;if(!h.includes('bald')){const cov=h.includes('cover');add(new THREE.SphereGeometry(cov?.165:.155,20,16,0,Math.PI*2,0,Math.PI*(cov?.78:h.includes('curl')||h.includes('wav')?.62:.5)),M(o.hair),0,1.22,0);
+  if(h.includes('long')||cov)add(new THREE.BoxGeometry(.3,.42,.06),M(o.hair),0,1.02,-.1);
+  if(h.includes('bun')||h.includes('tied'))add(new THREE.SphereGeometry(.06),M(o.hair),0,1.38,-.08)}
+ if(o.gl)[-1,1].forEach(s=>{const t=add(new THREE.TorusGeometry(.04,.009,8,16),M(0x111111),s*.06,1.215,.14);});
+ g.base=o.kid?.6:1;return g}
+const rgb=(n,d)=>{const c=PAL[(n||'').toLowerCase().trim()];return c?(c[0]<<16|c[1]<<8|c[2]):d};
+function init3D(){
+ if(typeof THREE==='undefined'){$('c3').innerHTML='<p style="padding:20px;color:#fca5a5">3D needs internet to load Three.js (cdnjs). Connect and refresh.</p>';return}
+ const box=$('cv'),SC=new THREE.Scene();SC.background=new THREE.Color(0x050811);
+ const cam3=new THREE.PerspectiveCamera(50,1,.1,100),rd=new THREE.WebGLRenderer({antialias:true});$('c3').appendChild(rd.domElement);
+ const dl=new THREE.DirectionalLight(0xffffff,1.1);dl.position.set(2,4,3);SC.add(dl,new THREE.AmbientLight(0x8899bb,1.1));
+ SC.add(new THREE.GridHelper(8,16,0x06b6d4,0x1e293b));
+ const wall=new THREE.Mesh(new THREE.BoxGeometry(.1,1.8,2),new THREE.MeshStandardMaterial({color:0x475569}));wall.position.set(1.05,.9,0);SC.add(wall);
+ let PA,PV,ca=.5,cd=3.6,auto=true;
+ build3D=()=>{[PA,PV].forEach(o=>o&&SC.remove(o));const mk=(p,t,hd)=>person({top:rgb(val(p,'tcol'),t),bot:rgb(val(p,'bcol'),0x1e293b),hair:rgb(val(p,'hair'),hd),ht:val(p,'htype').toLowerCase(),gl:val(p,'glass')==='Yes',kid:val(p,'age')==='Child'});
+  PA=mk('a',0x7f1d1d,0x2a1a10);PV=mk('v',0x0e7490,0x4a2c17);SC.add(PA,PV)};build3D();
+ // lever
+ const POD=new THREE.Group();const pm=new THREE.MeshStandardMaterial({color:0x1e293b,roughness:.4,metalness:.3});
+ POD.add(new THREE.Mesh(new THREE.BoxGeometry(.9,.18,.5),pm));
+ const sol=new THREE.Mesh(new THREE.BoxGeometry(.8,.02,.42),new THREE.MeshStandardMaterial({color:0x0ea5e9,emissive:0x0369a1}));sol.position.y=.1;POD.add(sol);
+ [-1,1].forEach(q=>{const a=new THREE.Mesh(new THREE.CylinderGeometry(.015,.015,.6),new THREE.MeshStandardMaterial({color:0x06b6d4,emissive:0x06b6d4}));a.position.set(q*.3,.45,-.1);a.rotation.z=q*.35;POD.add(a)});
+ POD.position.set(0,2.1,0);SC.add(POD);
+ const FB=new THREE.Mesh(new THREE.CylinderGeometry(.08,.08,.12,16),new THREE.MeshStandardMaterial({color:0x7f1d1d,emissive:0xff2020,emissiveIntensity:0}));FB.position.set(0,.2,0);POD.add(FB);window.FB=FB;
+ const EL=new THREE.Group();const strip=new THREE.Mesh(new THREE.PlaneGeometry(.35,4),new THREE.MeshStandardMaterial({color:0x10b981,emissive:0x10b981,emissiveIntensity:1,transparent:true,opacity:.85}));strip.rotation.x=-Math.PI/2;strip.position.set(-.3,.02,0);EL.add(strip);
+ const ec=document.createElement('canvas');ec.width=256;ec.height=96;const ex=ec.getContext('2d');ex.fillStyle='#10b981';ex.font='bold 52px sans-serif';ex.textAlign='center';ex.fillText('EXIT ➔',128,68);
+ const es=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(ec),transparent:true}));es.scale.set(1,.37,1);es.position.set(-.3,.3,-1.4);EL.add(es);
+ EL.visible=false;window.EXIT_LASER=EL;SC.add(EL);
+ const LG=new THREE.Group();LG.position.set(-1.6,0,.9);LG.scale.setScalar(1.6);
+ LG.add(new THREE.Mesh(new THREE.BoxGeometry(.5,.1,.3),new THREE.MeshStandardMaterial({color:0x334155,metalness:.8,roughness:.2})));
+ const pv=new THREE.Group();pv.position.y=.05;const sh=new THREE.Mesh(new THREE.CylinderGeometry(.02,.02,.4),new THREE.MeshStandardMaterial({color:0x94a3b8,metalness:.9,roughness:.1}));sh.position.y=.2;
+ const kb=new THREE.Mesh(new THREE.SphereGeometry(.06,16,16),new THREE.MeshStandardMaterial({color:0xef4444,emissive:0x7f1d1d}));kb.position.y=.42;pv.add(sh,kb);LG.add(pv);SC.add(LG);
+ const pc=document.createElement('canvas');pc.width=256;pc.height=96;const pcx=pc.getContext('2d');pcx.fillStyle='#fff';pcx.font='bold 56px sans-serif';pcx.textAlign='center';pcx.fillText('PULL',128,68);
+ const spr=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(pc),transparent:true}));spr.scale.set(.5,.18,1);spr.position.set(0,.75,0);LG.add(spr);
+ const rc=new THREE.Raycaster(),ms=new THREE.Vector2();let lever=false,orb=false,lx=0,ly=0;
+ const cv=rd.domElement;
+ cv.addEventListener('pointerdown',e=>{const r=cv.getBoundingClientRect();ms.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);rc.setFromCamera(ms,cam3);
+  if(rc.intersectObjects([kb,sh]).length)lever=true;else{orb=true;auto=false}lx=e.clientX;ly=e.clientY;cv.setPointerCapture(e.pointerId)});
+ cv.addEventListener('pointermove',e=>{if(lever){pv.rotation.x=Math.max(-.6,Math.min(.6,pv.rotation.x+(e.clientY-ly)*.01));if(pv.rotation.x>.4){lever=false;pullLever()}}else if(orb)ca-=(e.clientX-lx)*.01;lx=e.clientX;ly=e.clientY});
+ cv.addEventListener('pointerup',()=>{lever=orb=false});
+ cv.addEventListener('wheel',e=>{e.preventDefault();cd=Math.max(1.8,Math.min(7,cd+e.deltaY*.003))},{passive:false});
+ window.camReset=()=>{ca=.5;cd=3.6;auto=true};
+ const size=()=>{const w=box.clientWidth,h=box.clientHeight;if(!w||!h)return;rd.setSize(w,h);cam3.aspect=w/h;cam3.updateProjectionMatrix()};
+ new ResizeObserver(size).observe(box);size();
+ const L=(o,k,t,s)=>{o[k]+=(t-o[k])*(s||.12)};
+ (function loop(){requestAnimationFrame(loop);const p={...IDLE,...(cur&&S[cur].p)};
+  L(PA.position,'x',p.ax);L(PA.position,'z',p.az);L(PA.rotation,'y',p.ar);L(PV.position,'x',p.vx);L(PV.position,'z',p.vz);L(PV.rotation,'y',p.vr);
+  PA.arms.forEach((a,i)=>L(a.rotation,'x',p.aa[i]));PV.arms.forEach((a,i)=>L(a.rotation,'x',p.va[i]));
+  L(PV.rotation,'x',p.fall?-1.5:0);L(PV.position,'y',p.fall?.14:0);const sc=p.child?.55:PV.base;PV.scale.setScalar(PV.scale.x+(sc-PV.scale.x)*.12);
+  PA.visible=!p.noA;PA.blade&&(PA.blade.visible=!!p.blade);PV.blade.visible=false;wall.visible=!!p.wall;
+  if(demoPull){pv.rotation.x+=(.6-pv.rotation.x)*.12;if(pv.rotation.x>.5){demoPull=false;pullLever()}}else if(!lever)pv.rotation.x*=.92;if(auto)ca+=.003;POD.rotation.y+=.012;if(window.EXIT_LASER)window.EXIT_LASER.visible=(powerCut||fireOn);if(window.FB){FB.material.emissiveIntensity=fireOn?(.5+.5*Math.sin(Date.now()/120)):0;if(fireOn)FB.rotation.y+=.2}
+  cam3.position.set(Math.sin(ca)*cd,1.4,Math.cos(ca)*cd);cam3.lookAt(0,.7,0);rd.render(SC,cam3)})();
+}
+init3D();
+
+/* ---------- Fleet hub: taxi / lorry / aeroplane ---------- */
+const R={
+taxi:{e:'🚕',n:'TAXI DRIVER X • MEX HIGHWAY • PLATE WVA-8821',who:'Driver',t:'KLIA ➔ MEX Highway ➔ Bukit Jalil',km:22,v:[60,90],c:'#f59e0b',st:[['KLIA',50,240],['MEX Entry',150,200],['MEX Toll Plaza',240,140],['Kuchai Lama',360,110],['Bukit Jalil',510,50]],ev:['Hijack attempt: passenger grabs driver 🚨','Driver pressed silent SOS 🆘','Sudden impact detected 💥','Wrong-way detour ⚠️']},
+lorry:{e:'🚛',n:'LORRY / BUS SHOULDER PULL-OVER',who:'Driver',t:'Port Klang → Shah Alam → Kuala Lumpur → Genting',km:95,v:[60,85],c:'#10b981',st:[['Port Klang',40,260],['Shah Alam',170,190],['Kuala Lumpur',330,150],['Genting',520,40]],ev:['Driver drowsy 😴','Cargo door opened! 📦','Hijack attempt at rest stop 🚨','Fuel stop ⛽']},
+plane:{e:'✈️',n:'FLIGHT GX-370 • 3-ZONE AVIATION RADAR',who:'Pilot',t:'KUL → HKG → NRT',km:5300,v:[780,900],c:'#06b6d4',st:[['KUL',50,260],['HKG',290,130],['NRT',510,50]],ev:['Turbulence 🌩️','Unruly passenger 😠','Cockpit door knock 🚪','Cabin crew silent alert 🔔']}};
+let fk='taxi',ft=0,evNow='',sosOn=false,ecuT=0,ecuOn=false,zoneIdx=0;
+const gpsAt=f=>({la:2.7456+(35.7647-2.7456)*f,lo:101.7072+(140.3864-101.7072)*f});
+function zoneAlert(n){zoneIdx=zoneIdx===n?0:n;if(zoneIdx){buzz(2);say('Alert. '+['','Cockpit','Galley and cabin crew','Passenger cabin'][n]+' under attack. Air Traffic Control and Airline HQ notified.')}}const vids={};
+function openFleet(){$('fm').style.display='flex'}
+function setFV(u){const fv=$('fvid');if(u){fv.src=u;fv.load();fv.play().catch(()=>{})}else{fv.removeAttribute('src');fv.load()}}
+$('fvid').onerror=()=>$('fvid').getAttribute('src')&&toast('⚠ Codec not supported: probably H.265/HEVC. Re-export as H.264 MP4');
+function tab(k){fk=k;ft=0;evNow='';ecuOn=false;ecuT=0;document.querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));$('t_'+k).classList.add('on');setFV(vids[k]);$('zb').style.display=k==='plane'?'flex':'none';zoneIdx=0}
+function fleetVid(e){const f=e.target.files[0];e.target.value='';if(f){vids[fk]=URL.createObjectURL(f);setFV(vids[fk]);toast('Video added to '+R[fk].n)}}
+function ecu(){if(fk!=='lorry')return toast('Open the Lorry Driver tab first');ecuOn=!ecuOn;ecuT=0;if(ecuOn){evNow='AGENTIC AI OVERRIDE: braking + steering to shoulder 🛑';say('Driver incapacitated. Agentic A I taking control. Braking and steering to the hard shoulder.')}else evNow=''}
+function sos(){sosOn=!sosOn;beep()}
+function surprise(){const r=R[fk];evNow=r.ev[Math.floor(Math.random()*r.ev.length)];beep();clearTimeout(surprise.h);surprise.h=setTimeout(()=>evNow='',5000)}
+function posAt(r,t){const s=r.st,L=[];let tot=0;for(let i=1;i<s.length;i++){const l=Math.hypot(s[i][1]-s[i-1][1],s[i][2]-s[i-1][2]);L.push(l);tot+=l}let d=t*tot;for(let i=0;i<L.length;i++){if(d<=L[i]||i==L.length-1){const f=Math.min(1,d/L[i]);return[s[i][1]+(s[i+1][1]-s[i][1])*f,s[i][2]+(s[i+1][2]-s[i][2])*f]}d-=L[i]}}
+function fdraw(){const c=$('fmap'),x=c.getContext('2d'),r=R[fk],W=c.width,H=c.height,now=Date.now();
+ x.fillStyle=fk==='plane'?'#0a1a33':'#0b1220';x.fillRect(0,0,W,H);x.strokeStyle='#16233b';x.lineWidth=1;
+ for(let i=0;i<W;i+=30){x.beginPath();x.moveTo(i,0);x.lineTo(i,H);x.stroke()}for(let j=0;j<H;j+=30){x.beginPath();x.moveTo(0,j);x.lineTo(W,j);x.stroke()}
+ x.textAlign='center';if(fk==='plane'){x.font='28px serif';[0,1,2].forEach(i=>x.fillText('☁️',((now/60+i*200)%(W+80))-40,60+i*80))}
+ x.setLineDash([8,6]);x.strokeStyle='#475569';x.lineWidth=3;x.beginPath();r.st.forEach((p,i)=>i?x.lineTo(p[1],p[2]):x.moveTo(p[1],p[2]));x.stroke();x.setLineDash([]);
+ x.strokeStyle=r.c;x.lineWidth=4;x.beginPath();for(let k=0;k<=40;k++){const p=posAt(r,ft*k/40);k?x.lineTo(p[0],p[1]):x.moveTo(p[0],p[1])}x.stroke();
+ r.st.forEach(p=>{x.fillStyle='#fff';x.beginPath();x.arc(p[1],p[2],5,0,7);x.fill();x.font='bold 11px sans-serif';x.fillStyle='#e2e8f0';x.fillText(p[0],p[1],p[2]-10)});
+ const q=posAt(r,ft);if(evNow||sosOn){x.strokeStyle='#ef4444';x.lineWidth=3;x.beginPath();x.arc(q[0],q[1],18+8*Math.sin(now/100),0,7);x.stroke()}
+ if(fk==='plane'){[['#10b981',34],['#f59e0b',62],['#ef4444',90]].forEach(([c2,rr])=>{x.strokeStyle=c2;x.lineWidth=2;x.globalAlpha=.6;x.beginPath();x.arc(q[0],q[1],rr,0,7);x.stroke()});x.globalAlpha=1;x.strokeStyle='#10b981';x.beginPath();x.moveTo(q[0],q[1]);x.lineTo(q[0]+90*Math.cos(now/400),q[1]+90*Math.sin(now/400));x.stroke()}
+ x.font='28px serif';x.fillText(r.e,q[0],q[1]+10);
+ const sp=Math.round((r.v[0]+(r.v[1]-r.v[0])*(.5+.5*Math.sin(ft*25)))*(1-ecuT)),alt=35000+Math.round(4000*Math.sin(ft*30)),zn=alt>37500?3:alt<32500?1:2;
+ $('fdet').textContent=`${r.n}\nRoute: ${r.t}\nProgress: ${Math.round(ft*100)}%  (${Math.round(ft*r.km)}/${r.km} km)\nSpeed: ${sp} km/h${fk==='plane'?'   Altitude: '+alt+' ft  Zone: '+['Cockpit','Galley','Passenger Cabin'][zn-1]:''}\nETA: ${Math.max(0,Math.round((1-ft)*r.km/r.v[0]*60))} min\n${r.who} status: ${evNow||'Normal ✅'}\nECU: ${ecuOn?'AGENTIC OVERRIDE ACTIVE':'standby'}${fk==='lorry'&&ecuOn?'\nDriver Faint Verified (>2.5s) • Truck Company Notified • Hazard Lights ON • Autonomous ECU Pulled Over to Left Roadside Shoulder • Ambulance Auto-Dispatched with Exact GPS Coordinates ('+(3.0+.42*ft).toFixed(3)+'N, '+(101.39+.40*ft).toFixed(3)+'E)':''}${fk==='lorry'?'\nAutonomous ECU: faint >2.5s -> hazard lights -> auto-steer LEFT shoulder -> ambulance auto-dispatched':''}${fk==='plane'?'\nTransponder (simulated): '+(2.7456+(35.7647-2.7456)*ft).toFixed(3)+'N, '+(101.7072+(140.3864-101.7072)*ft).toFixed(3)+'E':''}${zoneIdx&&fk==='plane'?'\n🚨 SIMULTANEOUS ALERTS SENT TO: Air Traffic Control (ATC Control Tower) + Airline HQ\nRoute: '+R.plane.t+'\nGPS: '+gpsAt(ft).la.toFixed(3)+'N, '+gpsAt(ft).lo.toFixed(3)+'E\nZone under attack: '+['','Zone 1: Cockpit — Cockpit Pilot Security Breach Alert','Zone 2: Galley / Cabin Crew Alert','Zone 3: Passenger Cabin Alert'][zoneIdx]:''}\nSOS beacon: ${sosOn?'🆘 TRANSMITTING':'armed'}${fk==='taxi'?'\nWindscreen Cabin Device Active • Auto-Report & Video Clip Sent to Taxi Company & Police (Attacker vs. Victim Identified)':''}\nJudge video: ${vids[fk]?'attached 🎬':'none yet'}`}
+setInterval(()=>{if($('fm').style.display!=='flex')return;if(ecuOn)ecuT=Math.min(1,ecuT+.02);ft+=.0004*$('fsp').value*(1-ecuT);if(ft>1)ft=0;fdraw()},50);
+upd();
+</script></body></html>
